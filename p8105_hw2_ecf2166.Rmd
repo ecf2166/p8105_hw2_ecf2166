@@ -1,0 +1,22 @@
+---
+title: "Homework 2"
+output: github_document
+date: "2026-10-03"
+---
+
+# Problem 1
+
+```{r setup}
+library(tidyverse)
+
+```
+
+Importing the data
+```{r}
+nyc_subways = 
+  read_csv(
+    file = "data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
+    na = c("","NA")
+  )
+```
+

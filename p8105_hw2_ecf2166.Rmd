@@ -4,19 +4,94 @@ output: github_document
 date: "2026-10-03"
 ---
 
-# Problem 1
-
 ```{r setup}
 library(tidyverse)
 
 ```
 
-Importing the data
-```{r}
+# Problem 1
+
+## Importing and cleaning the data
+```{r q1_import_clean}
 nyc_subways = 
   read_csv(
-    file = "data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
-    na = c("","NA")
+    file = "data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv"
+  ) |> 
+  janitor::clean_names() |> 
+  select(line, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada) |> 
+  mutate(
+    entry = case_match(
+      entry,
+      "YES" ~ TRUE,
+      "NO" ~ FALSE
+    )
   )
+
+nyc_subways
 ```
 
+The NYC subway dataset contains information on each entrance and exit for each subway station in NYC. After cleaning, the dataset has `r nrow(nyc_subways)` rows and `r ncol(nyc_subways)` columns. The variables retained are: `r paste(names(nyc_subways), collapse = ", ")`. To clean the data, I cleaned the variable names using `janitor::clean_names()` to make them easier to work with, selected the variables of interest (line, station name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance), and converted the `entry` variable from character (YES / NO) to logical (TRUE / FALSE). These data are not tidy: route information is spread across the eleven columns `route1` through `route11` (with `route8` through `route11` as numeric variables and `route1` through `route7` as character variables) so the route is stored in column names rather than as a single variable with one value per row.
+
+## To answer the questions:
+```{r q1_questions}
+n_stations = 
+  nyc_subways |> 
+  distinct(line, station_name) |> 
+  nrow()
+ 
+n_ada = 
+  nyc_subways |> 
+  filter(ada) |> 
+  distinct(line, station_name) |> 
+  nrow()
+ 
+prop_no_vending = 
+  nyc_subways |> 
+  filter(vending == "NO") |> 
+  pull(entry) |> 
+  mean()
+```
+
+There are `r n_stations` distinct stations, identified by both line and station name.
+`r n_ada` of these stations are ADA compliant.
+The proportion of station entrances / exits without vending that allow entrance is `r round(prop_no_vending, 3)`.
+
+## Reformatting
+```{r q1_reformatting}
+# First, have to make sure that all of the route variables are character.
+nyc_subways = 
+  nyc_subways |> 
+  mutate(
+    route8 = as.character(route8),
+    route9 = as.character(route9),
+    route10 = as.character(route10),
+    route11 = as.character(route11)
+  )
+
+# using pivot_longer() to make one route number column and one route name column
+nyc_subways_longer = 
+  nyc_subways |> 
+  pivot_longer(
+    route1:route11,
+    names_to = "route_number",
+    names_prefix = "route",
+    values_to = "route_name"
+  )
+
+# To answer the questions about the A train:
+n_a_stations = 
+  nyc_subways_longer |> 
+  filter(route_name == "A") |> 
+  distinct(line, station_name) |> 
+  nrow()
+
+n_a_ada = 
+  nyc_subways_longer |> 
+  filter(route_name == "A", ada) |> 
+  distinct(line, station_name) |> 
+  nrow()
+```
+
+`r n_a_stations` distinct stations serve the A train. Of these, `r n_a_ada` are ADA compliant.
+
+# Problem 2

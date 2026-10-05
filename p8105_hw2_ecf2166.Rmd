@@ -34,27 +34,24 @@ The NYC subway dataset contains information on each entrance and exit for each s
 
 ## To answer the questions:
 ```{r q1_questions}
-n_stations = 
+stations = 
   nyc_subways |> 
-  distinct(line, station_name) |> 
-  nrow()
+  distinct(line, station_name)
  
-n_ada = 
+ada = 
   nyc_subways |> 
   filter(ada) |> 
-  distinct(line, station_name) |> 
-  nrow()
+  distinct(line, station_name)
  
-prop_no_vending = 
+no_vending = 
   nyc_subways |> 
   filter(vending == "NO") |> 
-  pull(entry) |> 
-  mean()
+  pull(entry)
 ```
 
-There are `r n_stations` distinct stations, identified by both line and station name.
-`r n_ada` of these stations are ADA compliant.
-The proportion of station entrances / exits without vending that allow entrance is `r round(prop_no_vending, 3)`.
+There are `r nrow(stations)` distinct stations, identified by both line and station name.
+`r nrow(ada)` of these stations are ADA compliant.
+The proportion of station entrances / exits without vending that allow entrance is `r round(mean(no_vending), 3)`.
 
 ## Reformatting
 ```{r q1_reformatting}
@@ -79,20 +76,18 @@ nyc_subways_longer =
   )
 
 # To answer the questions about the A train:
-n_a_stations = 
+a_stations = 
   nyc_subways_longer |> 
   filter(route_name == "A") |> 
-  distinct(line, station_name) |> 
-  nrow()
+  distinct(line, station_name)
 
-n_a_ada = 
+a_ada = 
   nyc_subways_longer |> 
   filter(route_name == "A", ada) |> 
-  distinct(line, station_name) |> 
-  nrow()
+  distinct(line, station_name)
 ```
 
-`r n_a_stations` distinct stations serve the A train. Of these, `r n_a_ada` are ADA compliant.
+`r nrow(a_stations)` distinct stations serve the A train. Of these, `r nrow(a_ada)` are ADA compliant.
 
 # Problem 2
 ## Importing and cleaning datasets
@@ -104,7 +99,7 @@ mr_trash_df =
   drop_na(dumpster) |> 
   mutate(
     year = as.numeric(year),
-    sports_balls = as.integer(round(sports_balls, 1)),
+    sports_balls = as.integer(round(sports_balls)),
     wheel = "Mr. Trash Wheel",
     month = str_to_lower(month)
   )
@@ -138,3 +133,98 @@ trash_df =
 The `trash_df` dataframe combines the data from three trash wheels: Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda. After cleaning and combining the three datasets, the final dataset contains `r nrow(trash_df)` observations with `r ncol(trash_df)` variables. The variables retained are: `r paste(names(trash_df), collapse = ", ")`. Key variables include `wheel`, which identifies the trash wheel, `weight_tons` and `volume_cubic_yards` for each dumpster, and counts of items collected such as `plastic_bottles`, `cigarette_butts`, and `wrappers.` Not every item is recorded for every wheel: `sports_balls` is only recorded for Mr. Trash Wheel and `glass_bottles` is not recorded for Gwynnda, so these are missing for the other wheels.
 
 The total weight collected by Professor Trash Wheel is `r trash_df |> filter(wheel == "Professor Trash Wheel") |> pull(weight_tons) |> sum(na.rm = TRUE)`. Gwynnda collected a total of `r trash_df |> filter(wheel == "Gwynnda", month == "june", year == 2022) |> pull(cigarette_butts) |> sum(na.rm = TRUE) |> format(big.mark = ",")` cigarette butts in June of 2022.
+
+# Problem 3
+
+## Baseline Data File
+```{r q3_baseline_file}
+# full file (includes people who are excluded from the study)
+baseline_df_raw = 
+  read_csv("data/data_mci/MCI_baseline.csv", skip = 1, na = c("", "NA", ".")) |> 
+  janitor::clean_names() |> 
+  mutate(
+    sex = case_match(
+      sex, 1 ~ "Male", 
+      0 ~ "Female"
+    ),
+    apoe4 = case_match(
+      apoe4, 
+      1 ~ "carrier",
+      0 ~ "non-carrier"
+    )
+  )
+
+# excluding those with MCI at baseline
+baseline_df = 
+  baseline_df_raw |> 
+  filter(is.na(age_at_onset) | age_at_onset > current_age)
+```
+
+```{r q3_baseline_descriptives}
+# These codes are for the descriptives that are not as easy to show in just inline code
+
+# for number who developed MCI
+mci_bl =
+  baseline_df |> filter(!is.na(age_at_onset))
+
+#for the proportion of women who are APOE4 carriers
+women_apoe4 = 
+  baseline_df |> 
+  filter(sex == "Female") |> 
+  mutate(
+    carrier_logic = case_match(
+      apoe4,
+      "carrier" ~ TRUE,
+      "non-carrier" ~ FALSE
+    )
+  )
+```
+
+The `baseline_df` data frame contains contains baseline information on `r nrow(baseline_df)` patients without MCI at baseline. To create this dataset, I imported the raw file, defined the NA values, skipped the first line of information about the dataset, cleaned the names, recoded sex and APOE4 so they were not numeric using the key that I dropped on import, and filtered out the patients that had MCI at baseline. A total of `r nrow(baseline_df_raw)` patients were recruited, of which `r nrow(baseline_df)` did not have MCI at onset (met inclusion criteria and were thus eligible). Of these patients, `r nrow(mci_bl)` developed MCI. 
+
+The average age at baseline of these patients is `r round(mean(pull(baseline_df, current_age)), 2)` and the proportion of women who are APOE4 carriers in the study is `r mean(pull(women_apoe4, carrier_logic))`. 
+
+## Longitudinally-Observed Biomarkers Dataset
+```{r}
+amyloid_df = 
+  read_csv("data/data_mci/mci_amyloid.csv", skip = 1, na = c("", "NA", ".", "Na")) |> 
+  janitor::clean_names() |> 
+  pivot_longer(
+    baseline:time_8,
+    names_to = "time",
+    names_prefix = "time_",
+    values_to = "amyloid_ratio"
+  ) |> 
+  mutate(
+    time = replace(time, time == "baseline", 0), 
+    time = as.numeric(time),
+    amyloid_ratio = as.numeric(amyloid_ratio)
+  ) |> 
+  rename(id=study_id)
+```
+
+For the dataset of longitudinally observed biomarker values, I imported the data file, defined NAs (specifically, defined "Na" as an NA value), cleaned the names,  pivoted the time columns, and converted the time and amyloid ratio columns to numeric values. This dataset has `r nrow(amyloid_df)` rows and three columns (study id, where biomarker Amyloid 42/40 ratio was measured. The average amyloid ratio is `r round(mean(pull(amyloid_df, amyloid_ratio), na.rm = TRUE), 3)`. 
+
+
+## Comparing the values in the two datasets
+```{r q3_comparison}
+# data frames for those who only show up in one of the two datasets
+baseline_only_df = 
+  baseline_df |> 
+  filter(!id %in% pull(amyloid_df, id))
+
+amyloid_only_df = 
+  amyloid_df |> 
+  filter(!id %in% pull(baseline_df, id)) |> 
+  distinct(id)
+
+# combined dataset of those in both
+mci_df = 
+  baseline_df |> 
+  filter(id %in% pull(amyloid_df, id)) |> 
+  left_join(amyloid_df, by = "id")
+
+write_csv(mci_df, "data/mci_combined.csv")
+```
+
+Comparing the two datasets, `r nrow(baseline_only_df)` participants appear only in the baseline data (so they have no amyloid measurements), and`r nrow(amyloid_only_df)` appear only in the amyloid data. The combined dataset retains the `r mci_df |> distinct(id) |> nrow()` participants who appear in both, with `r nrow(mci_df)` rows (one per participant per visit) and `r ncol(mci_df)` variables: `r paste(names(mci_df), collapse = ", ")`. `r sum(is.na(pull(mci_df, amyloid_ratio)))` rows have a missing amyloid ratio.

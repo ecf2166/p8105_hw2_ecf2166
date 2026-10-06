@@ -4,9 +4,8 @@ output: github_document
 date: "2026-10-03"
 ---
 
-```{r setup}
+```{r setup, message = FALSE}
 library(tidyverse)
-
 ```
 
 # Problem 1
@@ -131,9 +130,9 @@ trash_df =
   relocate(wheel)
 ```
 
-The `trash_df` dataframe combines the data from three trash wheels: Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda. After cleaning and combining the three datasets, the final dataset contains `r nrow(trash_df)` observations with `r ncol(trash_df)` variables. The variables retained are: `r paste(names(trash_df), collapse = ", ")`. Key variables include `wheel`, which identifies the trash wheel, `weight_tons` and `volume_cubic_yards` for each dumpster, and counts of items collected such as `plastic_bottles`, `cigarette_butts`, and `wrappers.` Not every item is recorded for every wheel: `sports_balls` is only recorded for Mr. Trash Wheel and `glass_bottles` is not recorded for Gwynnda, so these are missing for the other wheels.
+The `trash_df` dataframe combines the data from three trash wheels: Mr. Trash Wheel, Professor Trash Wheel, and Gwynnda. After cleaning and combining the three datasets, the final dataset contains `r nrow(trash_df)` observations with `r ncol(trash_df)` variables. The variables retained are: `r paste(names(trash_df), collapse = ", ")`. Key variables include `wheel`, which identifies the trash wheel, `weight_tons` and `volume_cubic_yards` for each dumpster, and counts of items collected such as `plastic_bottles`, `cigarette_butts`, and `wrappers`. Not every item is recorded for every wheel: `sports_balls` is only recorded for Mr. Trash Wheel and `glass_bottles` is not recorded for Gwynnda, so these are missing for the other wheels.
 
-The total weight collected by Professor Trash Wheel is `r trash_df |> filter(wheel == "Professor Trash Wheel") |> pull(weight_tons) |> sum(na.rm = TRUE)`. Gwynnda collected a total of `r trash_df |> filter(wheel == "Gwynnda", month == "june", year == 2022) |> pull(cigarette_butts) |> sum(na.rm = TRUE) |> format(big.mark = ",")` cigarette butts in June of 2022.
+The total weight collected by Professor Trash Wheel is `r trash_df |> filter(wheel == "Professor Trash Wheel") |> pull(weight_tons) |> sum(na.rm = TRUE)` tons. Gwynnda collected a total of `r trash_df |> filter(wheel == "Gwynnda", month == "june", year == 2022) |> pull(cigarette_butts) |> sum(na.rm = TRUE) |> format(big.mark = ",")` cigarette butts in June of 2022.
 
 # Problem 3
 
@@ -181,7 +180,7 @@ women_apoe4 =
   )
 ```
 
-The `baseline_df` data frame contains contains baseline information on `r nrow(baseline_df)` patients without MCI at baseline. To create this dataset, I imported the raw file, defined the NA values, skipped the first line of information about the dataset, cleaned the names, recoded sex and APOE4 so they were not numeric using the key that I dropped on import, and filtered out the patients that had MCI at baseline. A total of `r nrow(baseline_df_raw)` patients were recruited, of which `r nrow(baseline_df)` did not have MCI at onset (met inclusion criteria and were thus eligible). Of these patients, `r nrow(mci_bl)` developed MCI. 
+The `baseline_df` data frame contains baseline information on `r nrow(baseline_df)` patients without MCI at baseline. To create this dataset, I imported the raw file, defined the NA values, skipped the first line of information about the dataset, cleaned the names, recoded sex and APOE4 so they were not numeric using the key that I dropped on import, and filtered out the patients that had MCI at baseline. A total of `r nrow(baseline_df_raw)` patients were recruited, of which `r nrow(baseline_df)` did not have MCI at baseline (met inclusion criteria and were thus eligible). Of these patients, `r nrow(mci_bl)` developed MCI. 
 
 The average age at baseline of these patients is `r round(mean(pull(baseline_df, current_age)), 2)` and the proportion of women who are APOE4 carriers in the study is `r mean(pull(women_apoe4, carrier_logic))`. 
 
@@ -204,7 +203,7 @@ amyloid_df =
   rename(id=study_id)
 ```
 
-For the dataset of longitudinally observed biomarker values, I imported the data file, defined NAs (specifically, defined "Na" as an NA value), cleaned the names,  pivoted the time columns, and converted the time and amyloid ratio columns to numeric values. This dataset has `r nrow(amyloid_df)` rows and three columns (study id, where biomarker Amyloid 42/40 ratio was measured. The average amyloid ratio is `r round(mean(pull(amyloid_df, amyloid_ratio), na.rm = TRUE), 3)`. 
+For the dataset of longitudinally observed biomarker values, I imported the data file, defined NAs (specifically, defined "Na" as an NA value), cleaned the names,  pivoted the time columns, and converted the time and amyloid ratio columns to numeric values.  This dataset has `r nrow(amyloid_df)` rows and three columns (study id, time, and amyloid ratio). Time has values of 0 (baseline), 2, 4, 6, or 8 years, referring to the time in years that elapsed since the study baseline to the visit where the biomarker Amyloid 42/40 ratio was measured. The average amyloid ratio is `r round(mean(pull(amyloid_df, amyloid_ratio), na.rm = TRUE), 3)`. 
 
 
 ## Comparing the values in the two datasets
@@ -228,4 +227,4 @@ mci_df =
 write_csv(mci_df, "data/mci_combined.csv")
 ```
 
-Comparing the two datasets, `r nrow(baseline_only_df)` participants appear only in the baseline data (so they have no amyloid measurements), and`r nrow(amyloid_only_df)` appear only in the amyloid data. The combined dataset retains the `r mci_df |> distinct(id) |> nrow()` participants who appear in both, with `r nrow(mci_df)` rows (one per participant per visit) and `r ncol(mci_df)` variables: `r paste(names(mci_df), collapse = ", ")`. `r sum(is.na(pull(mci_df, amyloid_ratio)))` rows have a missing amyloid ratio.
+Comparing the two datasets, `r nrow(baseline_only_df)` participants appear only in the baseline data (so they have no amyloid measurements), and `r nrow(amyloid_only_df)` appear only in the amyloid data. The combined dataset retains the `r mci_df |> distinct(id) |> nrow()` participants who appear in both, with `r nrow(mci_df)` rows (one per participant per visit) and `r ncol(mci_df)` variables: `r paste(names(mci_df), collapse = ", ")`. `r sum(is.na(pull(mci_df, amyloid_ratio)))` rows have a missing amyloid ratio.

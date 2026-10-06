@@ -94,7 +94,7 @@ a_ada =
 ```{r q2_trash_import}
 # separate sheets for the trash wheels
 mr_trash_df =
-  readxl::read_excel("data/202509 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel", range = "A2:N709") |> #using the range instead of skip because of some notes coming in through the excel
+  readxl::read_excel("data/202610 Trash Wheel Collection Data.xlsx", sheet = "Mr. Trash Wheel", range = "A2:N742") |> #using the range instead of skip because of some notes coming in through the excel
   janitor::clean_names() |> 
   drop_na(dumpster) |> 
   mutate(
@@ -105,17 +105,18 @@ mr_trash_df =
   )
 
 prof_trash_df =
-  readxl::read_excel("data/202509 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", skip = 1) |> 
+  readxl::read_excel("data/202610 Trash Wheel Collection Data.xlsx", sheet = "Professor Trash Wheel", skip = 1) |> 
   janitor::clean_names() |> 
   drop_na(dumpster) |> 
   mutate(
     year = as.numeric(year),
+    plastic_bottles = as.numeric(plastic_bottles), #Dumpster 135 had a plastic_bottles value of "dive". as.numeric() converts this to NA
     wheel = "Professor Trash Wheel",
     month = str_to_lower(month)
   )
 
 gwynn_df =
-  readxl::read_excel("data/202509 Trash Wheel Collection Data.xlsx", sheet = "Gwynns Falls Trash Wheel", skip = 1) |> 
+  readxl::read_excel("data/202610 Trash Wheel Collection Data.xlsx", sheet = "Gwynnda the Good Wheel of the W", skip = 1) |> 
   janitor::clean_names() |> 
   drop_na(dumpster) |> 
   mutate(
